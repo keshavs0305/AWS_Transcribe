@@ -4,9 +4,9 @@ import os
 import json
 import urllib.request as urllib2
 
-#s3 = boto3.resource('s3')
-#for file in os.listdir('input_audios'):
-#    s3.meta.client.upload_file('input_audios/' + file, 'sample-conversation-file-bucket', file)
+s3 = boto3.resource('s3')
+for file in os.listdir('input_audios'):
+    s3.meta.client.upload_file('input_audios/' + file, 'sample-conversation-file-bucket', file)
 
 s3_client = boto3.client('s3')
 transcribe_client = boto3.client('transcribe')
