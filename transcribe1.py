@@ -42,7 +42,7 @@ for content in response['Contents']:
     response = urllib2.urlopen(text_file_s3_uri)
     data_json = json.loads(response.read())
 
-    file_name = 'output_text_files/'+content['Key']
-    text_file = open(file_name[:-3]+'txt', "w")
+    file_name = 'output_text_files/' + content['Key']
+    text_file = open(file_name[:-3] + 'txt', "w")
     text_file.write(data_json['results']['transcripts'][0]['transcript'])
     text_file.close()
