@@ -1,3 +1,5 @@
+AWSAccessKeyId=AKIAV7ZMGXN7JM6HDRXD
+AWSSecretKey=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
 import time
 import boto3
 import os
