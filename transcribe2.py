@@ -1,4 +1,3 @@
-
 import time
 import boto3
 import os
@@ -7,8 +6,8 @@ import urllib.request as urllib2
 from datetime import datetime
 import pandas as pd
 
-#s3 = boto3.resource('s3')
-#for file in os.listdir('input_audios'):
+# s3 = boto3.resource('s3')
+# for file in os.listdir('input_audios'):
 #    s3.meta.client.upload_file('input_audios/' + file, 'sample-conversation-file-bucket', file)
 
 s3_client = boto3.client('s3')
@@ -23,7 +22,7 @@ for content in response['Contents']:
         now = datetime.now()
         transcribe_client.start_transcription_job(
             TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130',
-            #TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"),
+            # TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"),
             LanguageCode='en-US',
             MediaFormat='wav',
             Media={
@@ -40,8 +39,9 @@ for content in response['Contents']:
     max_tries = 60
     while max_tries > 0:
         max_tries -= 1
-        job = transcribe_client.get_transcription_job(TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130')
-        #job = transcribe_client.get_transcription_job(TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"))
+        job = transcribe_client.get_transcription_job(
+            TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130')
+        # job = transcribe_client.get_transcription_job(TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"))
         job_status = job['TranscriptionJob']['TranscriptionJobStatus']
         if job_status == 'COMPLETED':
             text_file_s3_uri = job['TranscriptionJob']['Transcript']['TranscriptFileUri']
@@ -51,7 +51,6 @@ for content in response['Contents']:
 
     response = urllib2.urlopen(text_file_s3_uri)
     data_json = json.loads(response.read())
-
 
     seg_start = []
     seg_end = []
@@ -73,8 +72,13 @@ for content in response['Contents']:
         except:
             item_text[-1] += item['alternatives'][0]['content']
 
+    data1 = pd.DataFrame({'start_time': seg_start, 'end_time': seg_end, 'speaker': seg_spk})
+    data2 = pd.DataFrame({'start_time': item_start, 'end_time': item_end, 'text': item_text})
 
-    #s3_client.delete_object(
+    data1.to_csv('data1.csv')
+    data2.to_csv('data2.csv')
+
+    # s3_client.delete_object(
     #    Bucket='sample-conversation-file-bucket',
     #
-    #)
+    # )
