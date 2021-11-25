@@ -6,27 +6,30 @@ import urllib.request as urllib2
 from datetime import datetime
 import pandas as pd
 
-# s3 = boto3.resource('s3')
-# for file in os.listdir('input_audios'):
-#    s3.meta.client.upload_file('input_audios/' + file, 'sample-conversation-file-bucket', file)
+# bucket_name = 'sample-conversation-file-bucket'
+bucket_name = 'transcribe-input-file'
+
+s3 = boto3.resource('s3')
+for file in os.listdir('input_audios'):
+    s3.meta.client.upload_file('input_audios/' + file, bucket_name, file)
 
 s3_client = boto3.client('s3')
 transcribe_client = boto3.client('transcribe')
 
 response = s3_client.list_objects(
-    Bucket='sample-conversation-file-bucket'
+    Bucket=bucket_name
 )
 
 for content in response['Contents']:
     try:
         now = datetime.now()
         transcribe_client.start_transcription_job(
-            TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130',
-            # TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"),
+            # TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130',
+            TranscriptionJobName=content['Key'] + now.strftime("%d%m%y%H%m%S"),
             LanguageCode='en-US',
             MediaFormat='wav',
             Media={
-                'MediaFileUri': 's3://' + 'sample-conversation-file-bucket/' + content['Key']
+                'MediaFileUri': 's3://' + bucket_name + '/' + content['Key']
             },
             Settings={
                 'ShowSpeakerLabels': True,
@@ -39,9 +42,10 @@ for content in response['Contents']:
     max_tries = 60
     while max_tries > 0:
         max_tries -= 1
+        # job = transcribe_client.get_transcription_job(
+        #    TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130')
         job = transcribe_client.get_transcription_job(
-            TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130')
-        # job = transcribe_client.get_transcription_job(TranscriptionJobName=content['Key']+now.strftime("%d%m%y%H%m%S"))
+            TranscriptionJobName=content['Key'] + now.strftime("%d%m%y%H%m%S"))
         job_status = job['TranscriptionJob']['TranscriptionJobStatus']
         if job_status == 'COMPLETED':
             text_file_s3_uri = job['TranscriptionJob']['Transcript']['TranscriptFileUri']
@@ -74,11 +78,22 @@ for content in response['Contents']:
 
     data1 = pd.DataFrame({'start_time': seg_start, 'end_time': seg_end, 'speaker': seg_spk})
     data2 = pd.DataFrame({'start_time': item_start, 'end_time': item_end, 'text': item_text})
+    data1['text'] = data2['text']
 
-    data1.to_csv('data1.csv')
-    data2.to_csv('data2.csv')
+    start = []
+    end = []
+    spk = []
+    text = []
+    for k, v in data1.groupby((data1['speaker'].shift() != data1['speaker']).cumsum()):
+        text.append(' '.join(v['text'].values))
+        start.append(v['start_time'].min())
+        end.append(v['end_time'].min())
+        spk.append(v['speaker'].mode()[0])
 
-    # s3_client.delete_object(
-    #    Bucket='sample-conversation-file-bucket',
-    #
-    # )
+    pd.DataFrame({'start': start, 'end': end, 'speaker': spk, 'text': text}) \
+        .to_csv('output_text_files/' + content['Key'][:-3] + 'csv')
+
+    s3_client.delete_object(
+        Bucket=bucket_name,
+        Key=content['Key']
+    )
