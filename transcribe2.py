@@ -6,8 +6,7 @@ import urllib.request as urllib2
 from datetime import datetime
 import pandas as pd
 
-# bucket_name = 'sample-conversation-file-bucket'
-bucket_name = 'transcribe-input-file'
+bucket_name = 'sample-conversation-file-bucket'
 
 s3 = boto3.resource('s3')
 for file in os.listdir('input_audios'):
@@ -24,7 +23,6 @@ for content in response['Contents']:
     try:
         now = datetime.now()
         transcribe_client.start_transcription_job(
-            # TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130',
             TranscriptionJobName=content['Key'] + now.strftime("%d%m%y%H%m%S"),
             LanguageCode='en-US',
             MediaFormat='wav',
@@ -42,8 +40,6 @@ for content in response['Contents']:
     max_tries = 60
     while max_tries > 0:
         max_tries -= 1
-        # job = transcribe_client.get_transcription_job(
-        #    TranscriptionJobName='11-18-2021_12-07-38_sid_48468986_dbsid_823.wav231121021130')
         job = transcribe_client.get_transcription_job(
             TranscriptionJobName=content['Key'] + now.strftime("%d%m%y%H%m%S"))
         job_status = job['TranscriptionJob']['TranscriptionJobStatus']
